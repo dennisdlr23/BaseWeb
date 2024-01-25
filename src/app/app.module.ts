@@ -36,8 +36,6 @@ import { UserService } from './service/users/user.service';
 import { WebcamModule } from 'ngx-webcam';
 import {ColorPickerModule} from 'primeng/colorpicker';
 import {ProgressSpinnerModule} from 'primeng/progressspinner';
-import { ListWareHouseComponent } from './pages/items/warehouse/list-ware-house/list-ware-house.component';
-import { WareHouseDialogComponent } from './pages/items/warehouse/ware-house-dialog/ware-house-dialog.component';
 
 @NgModule({
     imports: [
@@ -71,8 +69,6 @@ import { WareHouseDialogComponent } from './pages/items/warehouse/ware-house-dia
         RoleDialogComponent,
         SkeletonTableComponent,
         UserDialogComponent,
-        ListWareHouseComponent,
-        WareHouseDialogComponent,
     ],
     providers: [
         {provide: LocationStrategy, useClass: HashLocationStrategy},
