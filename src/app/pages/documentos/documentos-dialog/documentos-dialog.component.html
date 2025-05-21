@@ -1,0 +1,55 @@
+<div class="dialog-container">
+  <h2>Agregar Documento</h2>
+  <form [formGroup]="documentForm" (ngSubmit)="onSubmit()">
+    <div class="form-field">
+      <label for="fileInput">Archivo</label>
+      <input type="file" id="fileInput" (change)="onFileSelected($event)">
+    </div>
+
+    <div class="form-field">
+      <label for="nombreAlmacenado">Nombre Almacenado</label>
+      <input id="nombreAlmacenado" formControlName="nombreAlmacenado" required>
+      <span class="error" *ngIf="documentForm.get('nombreAlmacenado')?.hasError('required') && documentForm.get('nombreAlmacenado')?.touched">
+        El nombre almacenado es requerido
+      </span>
+    </div>
+
+    <div class="form-field">
+      <label for="categoria">Categoría</label>
+      <input id="categoria" formControlName="categoria" required>
+      <span class="error" *ngIf="documentForm.get('categoria')?.hasError('required') && documentForm.get('categoria')?.touched">
+        La categoría es requerida
+      </span>
+    </div>
+
+    <div class="form-field">
+      <label for="etiquetas">Etiquetas</label>
+      <input id="etiquetas" formControlName="etiquetas">
+    </div>
+
+    <div class="form-field">
+      <label for="nombreOriginal">Nombre Original</label>
+      <input id="nombreOriginal" formControlName="nombreOriginal" readonly>
+    </div>
+
+    <div class="form-field">
+      <label for="tipoContenido">Tipo de Contenido</label>
+      <input id="tipoContenido" formControlName="tipoContenido" readonly>
+    </div>
+
+    <div class="form-field">
+      <label for="tamanoKB">Tamaño (KB)</label>
+      <input id="tamanoKB" formControlName="tamanoKB" readonly>
+    </div>
+
+    <div class="form-field">
+      <label for="fechaSubida">Fecha de Subida</label>
+      <input id="fechaSubida" formControlName="fechaSubida" readonly>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="cancel-button" (click)="onCancel()">Cancelar</button>
+      <button type="submit" class="save-button" [disabled]="!documentForm.valid || !selectedFile">Guardar</button>
+    </div>
+  </form>
+</div>

@@ -4,7 +4,7 @@
 
 export const environment = {
   production: false,
-  uriLogistic:"http://localhost:50209"//"https://cwapi.btdgrouphn.com"//"https://localhost:5001"//
+  uriLogistic:"http://localhost:50209/api"//"https://cwapi.btdgrouphn.com"//"https://localhost:5001"//
 };
 
 /*

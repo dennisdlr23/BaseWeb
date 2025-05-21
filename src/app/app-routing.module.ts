@@ -20,6 +20,7 @@ import { ListPermissionComponent } from './pages/permissions/list.permission.com
                         {
                             path: '',
                             component: DashboardComponent,
+
                             canActivate: [AuthGuard],
                         },
                         {
@@ -27,6 +28,14 @@ import { ListPermissionComponent } from './pages/permissions/list.permission.com
                             loadChildren: () =>
                                 import('./pages/users/users.module').then(
                                     (m) => m.UsersModule
+                                ),
+                            canActivate: [AuthGuard],
+                        },
+                        {
+                            path: 'documentos',
+                            loadChildren: () =>
+                                import('./pages/documentos/documentos.module').then(
+                                    (m) => m.DocumentosModule
                                 ),
                             canActivate: [AuthGuard],
                         },

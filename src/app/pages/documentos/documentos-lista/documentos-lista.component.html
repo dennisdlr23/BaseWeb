@@ -1,0 +1,46 @@
+<div *ngIf="error" class="error-message">{{ error }}</div>
+
+<div class="actions">
+  <button class="add-button" (click)="openAddDocumentDialog()">Agregar Documento</button>
+</div>
+
+<table class="tabla-documentos" *ngIf="documentos.length > 0; else sinDatos">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Nombre Original</th>
+      <th>Categoría</th>
+      <th>Tipo Contenido</th>
+      <th>Tamaño (KB)</th>
+      <th>Vista Previa</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let doc of documentos">
+      <td>{{ doc.id }}</td>
+      <td>{{ doc.nombreOriginal }}</td>
+      <td>{{ doc.categoria }}</td>
+      <td>{{ doc.tipoContenido }}</td>
+      <td>{{ doc.tamanoKB }}</td>
+      <td>
+        <ng-container *ngIf="imagenPreviewUrls[doc.id]; else noPreview">
+          <img [src]="imagenPreviewUrls[doc.id]" alt="Preview {{ doc.nombreOriginal }}" class="preview-img"/>
+        </ng-container>
+        <ng-template #noPreview>
+          <span class="no-preview">No disponible</span>
+        </ng-template>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<ng-template #sinDatos>
+  <p>No hay documentos para mostrar.</p>
+</ng-template>
+
+<!-- Custom Modal -->
+<div class="modal" *ngIf="isModalOpen">
+  <div class="modal-content">
+    <app-documentos-dialog (close)="closeModal($event)"></app-documentos-dialog>
+  </div>
+</div>
