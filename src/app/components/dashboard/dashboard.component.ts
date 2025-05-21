@@ -4,133 +4,113 @@ import { Product } from '../../api/product';
 import { Subscription } from 'rxjs';
 import { ConfigService } from '../../service/app.config.service';
 import { AppConfig } from '../../api/appconfig';
-import { DataDashBoard } from './models/data-dashboard';
-import { DashboardService } from 'src/app/service/dashboard/dashboard.service';
+
 import { Messages } from 'src/app/helpers/messages';
+import { DashboardService } from './service/dashboard.service';
+import { DocumentosPorTipoContenido } from './models/documentosPorTipoContenido';
+import { Chart } from 'chart.js';
 
 @Component({
     templateUrl: './dashboard.component.html',
 })
 export class DashboardComponent implements OnInit {
-    items: MenuItem[];
-    products: Product[];
-    chartData: any;
-    chartOptions: any;
-    subscription: Subscription;
-    config: AppConfig;
-    dataDashboard: DataDashBoard []= [];
-    loading: boolean=false;
+  charts = [
+    { id: 'chart1', title: 'Minutos Perdidos por Departamento' },
+    { id: 'chart2', title: 'Minutos Perdidos por Operación - Causa' },
+    { id: 'chart3', title: 'Unidades Perdidas' },
+    { id: 'chart4', title: 'Frecuencia de Fallas por Máquina' }
+  ];
 
-    constructor( public configService: ConfigService,
-                public dashboardService:DashboardService) {}
+  chartData1: any;
+  chartData2: any;
+  chartData3: any;
+  chartData4: any;
+  chartOptions: any;
 
-    ngOnInit() {
-       // this._getData();
-        this.config = this.configService.config;
-        this.subscription = this.configService.configUpdate$.subscribe(config => {
-            this.config = config;
-            this.updateChartOptions();
-        });
+  constructor(private dashboardService: DashboardService) { }
+
+  async ngOnInit() {
+    try {
+      // Obtención de datos desde el servicio
+      const [documentosPorTipoContenido] = await Promise.all([
+        this.dashboardService.getDocumentosPorTipoContenido() // Obtén los datos para el nuevo gráfico
+      ]);
+
+      // Imprimir datos en consola para depuración
+      console.log('Documentos por Tipo de Contenido:', documentosPorTipoContenido);
 
 
-        this.items = [
-            {label: 'Add New', icon: 'pi pi-fw pi-plus'},
-            {label: 'Remove', icon: 'pi pi-fw pi-minus'}
-        ];
+      // Configuración de los datos de los gráficos
+      this.chartData1 = this.getChartDataMinutosPorDepartamento(documentosPorTipoContenido);
 
-        this.chartData = {
-            labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
-            datasets: [
-                {
-                    label: 'First Dataset',
-                    data: [65, 59, 80, 81, 56, 55, 40],
-                    fill: false,
-                    backgroundColor: '#2f4860',
-                    borderColor: '#2f4860',
-                    tension: .4
-                }
-            ]
-        };
-    }
-
-    updateChartOptions() {
-        if (this.config.dark)
-            this.applyDarkTheme();
-        else
-            this.applyLightTheme();
-
-    }
-
-    applyDarkTheme() {
-        this.chartOptions = {
-            plugins: {
-                legend: {
-                    labels: {
-                        color: '#ebedef'
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    ticks: {
-                        color: '#ebedef'
-                    },
-                    grid: {
-                        color:  'rgba(160, 167, 181, .3)',
-                    }
-                },
-                y: {
-                    ticks: {
-                        color: '#ebedef'
-                    },
-                    grid: {
-                        color:  'rgba(160, 167, 181, .3)',
-                    }
-                },
+      // Opciones de los gráficos
+      this.chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          datalabels: {
+            color: '#444', // Color del texto
+            font: {
+              weight: 'bold', // Estilo de fuente en negrita
+              size: 12 // Tamaño de fuente
             }
-        };
-    }
-
-    applyLightTheme() {
-            this.chartOptions = {
-            plugins: {
-                legend: {
-                    labels: {
-                        color: '#495057'
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    ticks: {
-                        color: '#495057'
-                    },
-                    grid: {
-                        color:  '#ebedef',
-                    }
-                },
-                y: {
-                    ticks: {
-                        color: '#495057'
-                    },
-                    grid: {
-                        color:  '#ebedef',
-                    }
-                },
-            }
-        };
-    }
-
-    async _getData() {
-        try{
-            this.loading = true;
-            this.dataDashboard = await this.dashboardService.getData();
-            Messages.closeLoading();
-            this.loading = false;
           }
-          catch(ex){
-            this.loading = false;
-            Messages.warning("Advertencia", ex);
+        },
+        scales: {
+          x: {
+            beginAtZero: true
+          },
+          y: {
+            beginAtZero: true
           }
+        }
+      };
+
+      // Renderizar los gráficos
+      this.renderChart('chart1', this.chartData1);
+
+    } catch (error) {
+      console.error('Error al obtener los datos:', error);
     }
+  }
+
+  getChartDataMinutosPorDepartamento(data: DocumentosPorTipoContenido[]) {
+    if (!data || data.length === 0) {
+      return { labels: [], datasets: [] };
+    }
+    const labels = data.map(d => d.tipoContenido);
+    const values = data.map(d => d.cantidadDocumentos);
+
+    return {
+      labels: labels,
+      datasets: [{
+        label: 'Documentos Por Tipo De Contenido',
+        data: values,
+        borderColor: 'red',
+        backgroundColor: 'rgba(255, 0, 0, 0.5)',
+        type: 'bar'
+      }]
+    };
+  }
+
+
+
+
+  renderChart(elementId: string, chartData: any) {
+    const ctx = (document.getElementById(elementId) as HTMLCanvasElement)?.getContext('2d');
+    if (ctx) {
+      new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: {
+          ...this.chartOptions,
+          indexAxis: 'y', // Para gráficos de barras horizontales
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+    } else {
+      console.error(`No se pudo obtener el contexto del canvas con ID: ${elementId}`);
+    }
+  }
 }

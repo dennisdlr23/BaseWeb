@@ -6,6 +6,7 @@ import { DocumentosListaComponent } from './documentos-lista/documentos-lista.co
 import { DocumentosDialogComponent } from './documentos-dialog/documentos-dialog.component';
 import { DocumentService } from './services/documets.service';
 import { ReactiveFormsModule } from '@angular/forms';
+import { ComponentPrimeNg } from 'src/app/components.primeng';
 
 
 @NgModule({
@@ -16,7 +17,8 @@ import { ReactiveFormsModule } from '@angular/forms';
   imports: [
     CommonModule,
     DocumentosRoutingModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    ComponentPrimeNg
   ],
    providers: [DocumentService],
 })

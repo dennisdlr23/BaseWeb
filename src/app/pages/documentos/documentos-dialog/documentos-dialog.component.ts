@@ -1,7 +1,9 @@
-import { Component, OnInit, EventEmitter, Output } from '@angular/core';
+import { Component, OnInit, EventEmitter, Output, Input } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { DocumentService } from '../services/documets.service';
 import { Documento } from '../models/documents';
+import { Messages } from 'src/app/helpers/messages';
+import { environment } from 'src/environments/environment'; // Asegúrate de importar environment
 
 @Component({
   selector: 'app-documentos-dialog',
@@ -12,12 +14,18 @@ export class DocumentosDialogComponent implements OnInit {
   documentForm: FormGroup;
   selectedFile: File | null = null;
   @Output() close = new EventEmitter<boolean>();
+  @Input() documentToEdit: Documento | null = null;
+  @Input() isEditMode: boolean = false;
+  loading: boolean = false;
+  previewUrl: string | ArrayBuffer | null = null;
+  readonly basePath: string = 'C:\\SAANAA\\'; // Ruta base deseada
 
   constructor(
     private fb: FormBuilder,
     private documentService: DocumentService
   ) {
     this.documentForm = this.fb.group({
+      id: [0],
       nombreOriginal: [{ value: '', disabled: true }],
       nombreAlmacenado: ['', Validators.required],
       rutaArchivo: [{ value: '', disabled: true }],
@@ -29,7 +37,28 @@ export class DocumentosDialogComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    if (this.isEditMode && this.documentToEdit) {
+      this.loadDocumentForEdit();
+    }
+  }
+
+  loadDocumentForEdit(): void {
+    if (this.documentToEdit) {
+      this.documentForm.patchValue({
+        id: this.documentToEdit.id,
+        nombreOriginal: this.documentToEdit.nombreOriginal,
+        nombreAlmacenado: this.documentToEdit.nombreAlmacenado,
+        rutaArchivo: this.documentToEdit.rutaArchivo,
+        fechaSubida: this.documentToEdit.fechaSubida,
+        categoria: this.documentToEdit.categoria,
+        etiquetas: this.documentToEdit.etiquetas,
+        tipoContenido: this.documentToEdit.tipoContenido,
+        tamanoKB: this.documentToEdit.tamanoKB
+      });
+      this.loadPreview();
+    }
+  }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -41,6 +70,7 @@ export class DocumentosDialogComponent implements OnInit {
       if (!validTypes.includes(fileType)) {
         alert('Tipo de archivo no soportado');
         this.selectedFile = null;
+        this.previewUrl = null;
         return;
       }
       const fileSizeKB = Math.round(this.selectedFile.size / 1024);
@@ -51,56 +81,83 @@ export class DocumentosDialogComponent implements OnInit {
         tipoContenido: fileType,
         tamanoKB: fileSizeKB,
         fechaSubida: fechaSubida,
-        rutaArchivo: `/Uploads/${fileName}`
+        rutaArchivo: `${this.basePath}${fileName}` // Usar la ruta base deseada
       });
+
+      const reader = new FileReader();
+      reader.onload = (e) => this.previewUrl = e.target?.result;
+      reader.readAsDataURL(this.selectedFile);
     }
   }
 
   async onSubmit(): Promise<void> {
-  if (this.documentForm.valid && this.selectedFile) {
-    try {
-      const uploadedFilePath = await this.documentService.uploadFile(this.selectedFile);
-      console.log('📁 Ruta del archivo subido:', uploadedFilePath);
+    if (this.documentForm.valid) {
+      try {
+        this.loading = true;
+        Messages.loading("Guardando", this.isEditMode ? "Actualizando documento" : "Subiendo documento");
 
-      // ⚠️ Obtenemos todos los valores, incluso los deshabilitados
-      const rawValues = this.documentForm.getRawValue();
+        let response;
+        if (this.isEditMode && this.documentToEdit) {
+          const updatedDocument: Documento = {
+            ...this.documentToEdit,
+            ...this.documentForm.getRawValue()
+          };
+          response = await this.documentService.update(updatedDocument.id, updatedDocument);
+        } else {
+          if (!this.selectedFile) throw new Error('No hay archivo seleccionado');
+          const uploadedFilePath = await this.documentService.uploadFile(this.selectedFile);
+          const fileName = this.selectedFile.name;
+          const document: Documento = {
+            id: 0,
+            ...this.documentForm.getRawValue(),
+            rutaArchivo: `${this.basePath}${fileName}` // Usar la ruta base deseada
+          };
+          response = await this.documentService.add(document);
+        }
 
-      console.log('📝 Valores del formulario (raw):');
-      console.table(rawValues);
-
-      const document: Documento = {
-        id: 0,
-        nombreOriginal: rawValues.nombreOriginal,
-        nombreAlmacenado: rawValues.nombreAlmacenado,
-        rutaArchivo: uploadedFilePath,
-        fechaSubida: rawValues.fechaSubida,
-        categoria: rawValues.categoria,
-        etiquetas: rawValues.etiquetas,
-        tipoContenido: rawValues.tipoContenido,
-        tamanoKB: rawValues.tamanoKB
-      };
-
-      console.log('📤 Payload enviado a DocumentService.add():');
-      console.log(JSON.stringify(document, null, 2));
-
-      const response = await this.documentService.add(document);
-
-      console.log('✅ Respuesta del backend:', response);
-
-      this.close.emit(true);
-    } catch (error: any) {
-      console.error('❌ Error al guardar el documento:', error.message || error);
+        Messages.closeLoading();
+        Messages.Toas(this.isEditMode ? "Documento actualizado correctamente" : "Documento guardado correctamente");
+        this.close.emit(true);
+        this.documentForm.reset();
+        this.previewUrl = null;
+        this.selectedFile = null;
+      } catch (error: any) {
+        Messages.closeLoading();
+        const errorMessage = error.message || 'No se pudo guardar el documento';
+        Messages.warning("Error", errorMessage);
+        console.error('❌ Error al guardar el documento:', {
+          message: errorMessage,
+          payload: JSON.stringify(this.documentForm.getRawValue(), null, 2),
+          errorDetails: error
+        });
+        this.close.emit(false);
+      } finally {
+        this.loading = false;
+      }
+    } else {
+      Messages.warning("Advertencia", "Formulario inválido");
       this.close.emit(false);
     }
-  } else {
-    console.warn('⚠️ Formulario inválido o no hay archivo seleccionado');
-    this.close.emit(false);
   }
-}
-
-
 
   onCancel(): void {
     this.close.emit(false);
+  }
+
+  async loadPreview(): Promise<void> {
+    const fileName = this.documentForm.get('nombreOriginal')?.value;
+    if (fileName) {
+      try {
+        const blob = await this.documentService.getImagen(fileName);
+        const url = URL.createObjectURL(blob);
+        this.previewUrl = url;
+      } catch (error) {
+        console.error('Error al cargar la vista previa:', error);
+        this.previewUrl = null;
+        Messages.warning("Error", "No se pudo cargar la vista previa");
+      }
+    } else {
+      Messages.warning("Advertencia", "No hay archivo para mostrar la vista previa");
+    }
   }
 }

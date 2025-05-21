@@ -4,7 +4,52 @@
   <button class="add-button" (click)="openAddDocumentDialog()">Agregar Documento</button>
 </div>
 
-<table class="tabla-documentos" *ngIf="documentos.length > 0; else sinDatos">
+<!-- Sección de filtros -->
+<div class="filters">
+  <div class="filter-field">
+    <label for="categoria">Categoría:</label>
+    <select id="categoria" [(ngModel)]="selectedCategoria" (change)="aplicarFiltros()">
+      <option [ngValue]="null">Todas</option>
+      <option *ngFor="let cat of categorias" [value]="cat">{{ cat }}</option>
+    </select>
+  </div>
+
+  <div class="filter-field">
+    <label for="tipoContenido">Tipo de Contenido:</label>
+    <select id="tipoContenido" [(ngModel)]="selectedTipoContenido" (change)="aplicarFiltros()">
+      <option [ngValue]="null">Todos</option>
+      <option *ngFor="let tipo of tiposContenido" [value]="tipo">{{ tipo }}</option>
+    </select>
+  </div>
+
+  <div class="filter-field">
+    <label for="fechaInicio">Fecha Inicio:</label>
+    <p-calendar
+      id="fechaInicio"
+      [(ngModel)]="fechaInicio"
+      (onSelect)="aplicarFiltros()"
+      placeholder="Selecciona fecha"
+      [showIcon]="true"
+      dateFormat="dd/mm/yy"
+    ></p-calendar>
+  </div>
+
+  <div class="filter-field">
+    <label for="fechaFin">Fecha Fin:</label>
+    <p-calendar
+      id="fechaFin"
+      [(ngModel)]="fechaFin"
+      (onSelect)="aplicarFiltros()"
+      placeholder="Selecciona fecha"
+      [showIcon]="true"
+      dateFormat="dd/mm/yy"
+    ></p-calendar>
+  </div>
+
+  <button class="reset-button" (click)="resetFiltros()">Limpiar Filtros</button>
+</div>
+
+<table class="tabla-documentos" *ngIf="filteredDocumentos.length > 0; else sinDatos">
   <thead>
     <tr>
       <th>ID</th>
@@ -12,35 +57,73 @@
       <th>Categoría</th>
       <th>Tipo Contenido</th>
       <th>Tamaño (KB)</th>
-      <th>Vista Previa</th>
+      <th>Acciones</th>
     </tr>
   </thead>
   <tbody>
-    <tr *ngFor="let doc of documentos">
+    <tr *ngFor="let doc of filteredDocumentos">
       <td>{{ doc.id }}</td>
       <td>{{ doc.nombreOriginal }}</td>
       <td>{{ doc.categoria }}</td>
       <td>{{ doc.tipoContenido }}</td>
       <td>{{ doc.tamanoKB }}</td>
-      <td>
-        <ng-container *ngIf="imagenPreviewUrls[doc.id]; else noPreview">
-          <img [src]="imagenPreviewUrls[doc.id]" alt="Preview {{ doc.nombreOriginal }}" class="preview-img"/>
-        </ng-container>
-        <ng-template #noPreview>
-          <span class="no-preview">No disponible</span>
-        </ng-template>
+      <td class="actions-cell">
+        <button (click)="openPreview(doc)" class="preview-button">
+          <i class="pi pi-eye"></i>
+        </button>
+        <button class="action-button" (click)="openEditDialog(doc)">
+          <i class="pi pi-pencil"></i>
+        </button>
+        <button class="action-button" (click)="deleteDocument(doc)">
+          <i class="pi pi-trash"></i>
+        </button>
+        <button class="action-button" (click)="openFileLocation(doc)">
+          <i class="pi pi-folder-open"></i>
+        </button>
       </td>
     </tr>
   </tbody>
 </table>
 
 <ng-template #sinDatos>
-  <p>No hay documentos para mostrar.</p>
+  <p class="no-data">No hay documentos para mostrar.</p>
 </ng-template>
 
 <!-- Custom Modal -->
 <div class="modal" *ngIf="isModalOpen">
-  <div class="modal-content">
-    <app-documentos-dialog (close)="closeModal($event)"></app-documentos-dialog>
+  <div class="modal-content" [ngClass]="{'full-screen': isFullScreen}">
+    <div *ngIf="selectedDoc && !isEditMode">
+      <div class="modal-header">
+        <h2>Vista Previa: {{ selectedDoc.nombreOriginal }}</h2>
+        <button class="close-button" (click)="closeModal(false)">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="selectedDoc.tipoContenido.toLowerCase() === 'application/pdf'">
+          <iframe [src]="previewUrl || ''" style="width: 100%; height: 500px;" *ngIf="previewUrl"></iframe>
+          <p *ngIf="!previewUrl">No se pudo cargar el PDF.</p>
+        </div>
+        <div *ngIf="selectedDoc.tipoContenido.toLowerCase().includes('image') || selectedDoc.tipoContenido.toLowerCase() === 'image/gif'">
+          <img [src]="previewUrl || ''" alt="Vista previa" style="max-width: 100%; max-height: 500px;" *ngIf="previewUrl">
+          <p *ngIf="!previewUrl">No se pudo cargar la imagen.</p>
+        </div>
+        <div *ngIf="!selectedDoc.tipoContenido.toLowerCase().includes('image') && selectedDoc.tipoContenido.toLowerCase() !== 'application/pdf'">
+          <p>No se puede renderizar este tipo de archivo.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="toggle-fullscreen-button" (click)="toggleFullScreen()">
+          <i class="pi" [ngClass]="isFullScreen ? 'pi-window-minimize' : 'pi-window-maximize'"></i>
+        </button>
+        <button class="close-modal-button" (click)="closeModal(false)">Cerrar</button>
+      </div>
+    </div>
+    <app-documentos-dialog
+      *ngIf="!selectedDoc || isEditMode"
+      [documentToEdit]="selectedDoc"
+      [isEditMode]="isEditMode"
+      (close)="closeModal($event)"
+    ></app-documentos-dialog>
   </div>
 </div>

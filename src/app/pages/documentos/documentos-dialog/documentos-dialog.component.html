@@ -1,7 +1,7 @@
 <div class="dialog-container">
-  <h2>Agregar Documento</h2>
+  <h2>{{ isEditMode ? 'Editar Documento' : 'Agregar Documento' }}</h2>
   <form [formGroup]="documentForm" (ngSubmit)="onSubmit()">
-    <div class="form-field">
+    <div class="form-field" *ngIf="!isEditMode">
       <label for="fileInput">Archivo</label>
       <input type="file" id="fileInput" (change)="onFileSelected($event)">
     </div>
@@ -10,7 +10,7 @@
       <label for="nombreAlmacenado">Nombre Almacenado</label>
       <input id="nombreAlmacenado" formControlName="nombreAlmacenado" required>
       <span class="error" *ngIf="documentForm.get('nombreAlmacenado')?.hasError('required') && documentForm.get('nombreAlmacenado')?.touched">
-        El nombre almacenado es requerido
+        El nombre almacenado es requerida
       </span>
     </div>
 
@@ -49,7 +49,9 @@
 
     <div class="form-actions">
       <button type="button" class="cancel-button" (click)="onCancel()">Cancelar</button>
-      <button type="submit" class="save-button" [disabled]="!documentForm.valid || !selectedFile">Guardar</button>
+      <button type="submit" class="save-button" [disabled]="!documentForm.valid || (!isEditMode && !selectedFile)">
+        {{ isEditMode ? 'Actualizar' : 'Guardar' }}
+      </button>
     </div>
   </form>
 </div>
