@@ -1,0 +1,27 @@
+<p-dialog header="{{isAdd ? 'Agregar' : 'Editar'}} Categoría" [(visible)]="display"
+  modal="true" blockScroll="true" [style]="{width: '30vw'}">
+
+  <ng-template [ngIf]="loading" [ngIfElse]="formTemplate">
+    Cargando...
+  </ng-template>
+
+  <ng-template #formTemplate>
+    <form [formGroup]="formCategoria" *ngIf="formCategoria" class="p-fluid">
+      <div class="field">
+        <label for="nombre">Nombre</label>
+        <input id="nombre" type="text" pInputText formControlName="nombre" [ngClass]="{'is-invalid': formCategoria.controls['nombre'].invalid && formCategoria.controls['nombre'].touched}">
+        <small *ngIf="formCategoria.controls['nombre'].invalid && formCategoria.controls['nombre'].touched" class="p-error">Nombre es requerido</small>
+      </div>
+
+      <div class="field-checkbox">
+        <p-checkbox binary="true" label="Activa" formControlName="activa"></p-checkbox>
+      </div>
+    </form>
+  </ng-template>
+
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="display=false"></button>
+    <button *ngIf="isAdd" pButton type="button" label="Agregar" [disabled]="formCategoria.invalid || loading" (click)="add()"></button>
+    <button *ngIf="!isAdd" pButton type="button" label="Editar" [disabled]="formCategoria.invalid || loading" (click)="edit()"></button>
+  </ng-template>
+</p-dialog>

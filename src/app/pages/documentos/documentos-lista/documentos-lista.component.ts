@@ -1,9 +1,15 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { Documento } from '../models/documents';
 import { DocumentService } from '../services/documets.service';
+import { CategoriasService } from '../services/categorias.service'; // Importa el servicio
+import { Categorias } from '../models/categorias'; // Importa el modelo
 import { DomSanitizer, SafeUrl, SafeResourceUrl } from '@angular/platform-browser';
 import { Messages } from 'src/app/helpers/messages';
 import { environment } from 'src/environments/environment';
+import { User } from 'src/app/models/user';
+import { UserService } from 'src/app/service/users/user.service';
+import { AuthService } from 'src/app/service/users/auth.service';
+import { Table } from 'primeng/table';
 
 @Component({
   selector: 'app-documentos-lista',
@@ -11,8 +17,11 @@ import { environment } from 'src/environments/environment';
   styleUrls: ['./documentos-lista.component.scss']
 })
 export class DocumentosListaComponent implements OnInit, OnDestroy {
+  @ViewChild('dt') dt: Table | undefined;
+  users: User[] = [];
+  userMap: { [key: number]: string } = {};
   documentos: Documento[] = [];
-  filteredDocumentos: Documento[] = []; // Lista filtrada para mostrar en la tabla
+  filteredDocumentos: Documento[] = [];
   imagenPreviewUrls: { [key: number]: SafeUrl } = {};
   error: string | null = null;
   isModalOpen: boolean = false;
@@ -21,22 +30,29 @@ export class DocumentosListaComponent implements OnInit, OnDestroy {
   previewUrl: SafeUrl | SafeResourceUrl | null = null;
   isFullScreen: boolean = false;
   isEditMode: boolean = false;
-
-  // Variables para los filtros
-  categorias: string[] = [];
+  categorias: Categorias[] = []; // Cambiado a Categorias[]
   tiposContenido: string[] = [];
-  selectedCategoria: string | null = null;
+  selectedCategoria: Categorias | null = null; // Cambiado a Categorias | null
   selectedTipoContenido: string | null = null;
   fechaInicio: Date | null = null;
   fechaFin: Date | null = null;
+  isAdmin: boolean = false;
+  loading: boolean = false;
 
   constructor(
     private documentService: DocumentService,
-    private sanitizer: DomSanitizer
-  ) {}
+    private categoriasService: CategoriasService, // Inyecta el servicio
+    private sanitizer: DomSanitizer,
+    private userService: UserService,
+    private authService: AuthService
+  ) {
+    const user = this.authService.UserValue;
+    this.isAdmin = user && user.userName.toLowerCase() === 'admin';
+    console.log(`User is ${this.isAdmin ? 'Admin' : 'Non-Admin'}`);
+  }
 
-  ngOnInit(): void {
-    this.cargarDocumentos();
+  async ngOnInit(): Promise<void> {
+    await Promise.all([this.cargarUsuarios(), this.cargarCategorias(), this.cargarDocumentos()]);
   }
 
   ngOnDestroy(): void {
@@ -45,32 +61,72 @@ export class DocumentosListaComponent implements OnInit, OnDestroy {
     this.previewUrl = null;
   }
 
-  async cargarDocumentos() {
+  async cargarUsuarios(): Promise<void> {
     try {
-      this.documentos = await this.documentService.getAll();
-      this.filteredDocumentos = [...this.documentos]; // Inicialmente, todos los documentos
-      this.cargarFiltros(); // Cargar opciones de filtros
-      await this.cargarPreviews();
-    } catch (e) {
-      this.error = "Error cargando documentos.";
-      console.error('Error al cargar documentos:', e);
+      this.loading = true;
+      this.users = await this.userService.get();
+      this.userMap = this.users.reduce((map, user) => {
+        map[user.userId] = user.userName;
+        return map;
+      }, {} as { [key: number]: string });
+    } catch (error) {
+      console.error('Error al cargar usuarios:', error);
+      this.error = 'Error al cargar los usuarios.';
+    } finally {
+      this.loading = false;
     }
   }
 
-  cargarFiltros() {
-    // Obtener categorías únicas
-    this.categorias = [...new Set(this.documentos.map(doc => doc.categoria))].filter(cat => !!cat);
-    // Obtener tipos de contenido únicos
+  async cargarCategorias(): Promise<void> {
+    try {
+      this.loading = true;
+      this.categorias = await this.categoriasService.get();
+      // Filtra solo las categorías activas
+      this.categorias = this.categorias.filter(categoria => categoria.activa);
+    } catch (error) {
+      console.error('Error al cargar categorías:', error);
+      this.error = 'Error al cargar las categorías.';
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  getUserName(userId: number): string {
+    return this.userMap[userId] || 'Desconocido';
+  }
+
+  async cargarDocumentos(): Promise<void> {
+    try {
+      this.loading = true;
+      this.documentos = await this.documentService.getAll();
+      this.filteredDocumentos = [...this.documentos];
+      this.cargarFiltros();
+      await this.cargarPreviews();
+    } catch (e) {
+      this.error = 'Error cargando documentos.';
+      console.error('Error al cargar documentos:', e);
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  cargarFiltros(): void {
+    // Solo carga tipos de contenido, ya que categorías se cargan desde el servicio
     this.tiposContenido = [...new Set(this.documentos.map(doc => doc.tipoContenido))].filter(tipo => !!tipo);
   }
 
-  async cargarPreviews() {
+  async cargarPreviews(): Promise<void> {
     this.blobUrls.forEach(url => URL.revokeObjectURL(url));
     this.blobUrls = [];
     this.imagenPreviewUrls = {};
 
     for (const doc of this.filteredDocumentos) {
-      if (doc.tipoContenido.toLowerCase().includes('image') || doc.tipoContenido.toLowerCase() === 'image/jpeg' || doc.tipoContenido.toLowerCase() === 'image/png' || doc.tipoContenido.toLowerCase() === 'image/gif') {
+      if (
+        doc.tipoContenido.toLowerCase().includes('image') ||
+        doc.tipoContenido.toLowerCase() === 'image/jpeg' ||
+        doc.tipoContenido.toLowerCase() === 'image/png' ||
+        doc.tipoContenido.toLowerCase() === 'image/gif'
+      ) {
         try {
           console.log(`Solicitando previsualización para: /api/Upload/Imagenes/${doc.nombreOriginal}`);
           const blob = await this.documentService.getImagen(doc.nombreOriginal);
@@ -88,21 +144,18 @@ export class DocumentosListaComponent implements OnInit, OnDestroy {
     }
   }
 
-  aplicarFiltros() {
+  aplicarFiltros(): void {
     this.filteredDocumentos = this.documentos.filter(doc => {
       let pasaFiltro = true;
 
-      // Filtro por categoría
-      if (this.selectedCategoria && doc.categoria !== this.selectedCategoria) {
+      if (this.selectedCategoria && doc.categoria !== this.selectedCategoria.nombre) {
         pasaFiltro = false;
       }
 
-      // Filtro por tipo de contenido
       if (this.selectedTipoContenido && doc.tipoContenido !== this.selectedTipoContenido) {
         pasaFiltro = false;
       }
 
-      // Filtro por fechas
       const fechaSubida = new Date(doc.fechaSubida);
       if (this.fechaInicio && fechaSubida < this.fechaInicio) {
         pasaFiltro = false;
@@ -114,11 +167,10 @@ export class DocumentosListaComponent implements OnInit, OnDestroy {
       return pasaFiltro;
     });
 
-    // Recargar previsualizaciones para los documentos filtrados
     this.cargarPreviews();
   }
 
-  resetFiltros() {
+  resetFiltros(): void {
     this.selectedCategoria = null;
     this.selectedTipoContenido = null;
     this.fechaInicio = null;
@@ -146,49 +198,49 @@ export class DocumentosListaComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error(`Error al cargar previsualización para ${doc.nombreOriginal}:`, error);
       this.previewUrl = this.sanitizer.bypassSecurityTrustUrl('');
-      this.error = "No se pudo cargar la previsualización.";
+      this.error = 'No se pudo cargar la previsualización.';
     }
   }
 
-  openAddDocumentDialog() {
+  openAddDocumentDialog(): void {
     this.selectedDoc = null;
     this.isEditMode = false;
     this.isModalOpen = true;
   }
 
-  openEditDialog(doc: Documento) {
+  openEditDialog(doc: Documento): void {
     this.selectedDoc = doc;
     this.isEditMode = true;
     this.isModalOpen = true;
   }
 
-  async deleteDocument(doc: Documento) {
+  async deleteDocument(doc: Documento): Promise<void> {
     if (confirm(`¿Estás seguro de eliminar el documento "${doc.nombreOriginal}"?`)) {
       try {
-        Messages.loading("Eliminando", "Eliminando documento...");
-        await this.documentService.delete(doc.id);
+        Messages.loading('Eliminando', 'Eliminando documento...');
+        const response = await this.documentService.delete(doc.id);
         Messages.closeLoading();
-        Messages.Toas("Documento eliminado correctamente");
-        this.cargarDocumentos();
+        Messages.Toas(response?.mensaje || 'Documento eliminado correctamente');
+        await this.cargarDocumentos();
       } catch (error: any) {
         Messages.closeLoading();
-        Messages.warning("Error", error.message || "No se pudo eliminar el documento.");
+        Messages.warning('Error', error.message || 'No se pudo eliminar el documento.');
         console.error('Error al eliminar documento:', error);
       }
     }
   }
 
-  openFileLocation(doc: Documento) {
+  openFileLocation(doc: Documento): void {
     if (doc.nombreOriginal) {
-      const fileUrl = `${environment.uriApi}/Upload/Imagenes/${doc.nombreOriginal}`; // Usar la URL del servidor
+      const fileUrl = `${environment.uriApi}/Upload/Imagenes/${doc.nombreOriginal}`;
       console.log('Abriendo ubicación del archivo:', fileUrl);
       window.open(fileUrl, '_blank');
     } else {
-      Messages.warning("Advertencia", "No hay ubicación disponible para este documento.");
+      Messages.warning('Advertencia', 'No hay ubicación disponible para este documento.');
     }
   }
 
-  closeModal(result: boolean) {
+  closeModal(result: boolean): void {
     this.isModalOpen = false;
     this.isFullScreen = false;
     this.selectedDoc = null;
@@ -202,11 +254,11 @@ export class DocumentosListaComponent implements OnInit, OnDestroy {
     }
   }
 
-  openPreview(doc: Documento) {
+  openPreview(doc: Documento): void {
     this.renderPreview(doc);
   }
 
-  toggleFullScreen() {
+  toggleFullScreen(): void {
     this.isFullScreen = !this.isFullScreen;
     console.log('Modo pantalla completa:', this.isFullScreen);
   }

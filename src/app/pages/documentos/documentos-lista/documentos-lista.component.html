@@ -1,16 +1,17 @@
 <div *ngIf="error" class="error-message">{{ error }}</div>
 
-<div class="actions">
-  <button class="add-button" (click)="openAddDocumentDialog()">Agregar Documento</button>
+<!-- Add indicator for document scope -->
+<div class="document-scope">
+  <h3>{{ isAdmin ? '' : 'My Documents' }}</h3>
 </div>
 
-<!-- Sección de filtros -->
+<!-- Sección de filtros (arriba de la tabla) -->
 <div class="filters">
   <div class="filter-field">
     <label for="categoria">Categoría:</label>
     <select id="categoria" [(ngModel)]="selectedCategoria" (change)="aplicarFiltros()">
       <option [ngValue]="null">Todas</option>
-      <option *ngFor="let cat of categorias" [value]="cat">{{ cat }}</option>
+      <option *ngFor="let cat of categorias" [ngValue]="cat">{{ cat.nombre }}</option>
     </select>
   </div>
 
@@ -46,50 +47,75 @@
     ></p-calendar>
   </div>
 
-  <button class="reset-button" (click)="resetFiltros()">Limpiar Filtros</button>
+  <button pButton class="p-button-secondary" (click)="resetFiltros()" label="Limpiar Filtros"></button>
 </div>
 
-<table class="tabla-documentos" *ngIf="filteredDocumentos.length > 0; else sinDatos">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Nombre Original</th>
-      <th>Categoría</th>
-      <th>Tipo Contenido</th>
-      <th>Tamaño (KB)</th>
-      <th>Acciones</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let doc of filteredDocumentos">
-      <td>{{ doc.id }}</td>
-      <td>{{ doc.nombreOriginal }}</td>
-      <td>{{ doc.categoria }}</td>
-      <td>{{ doc.tipoContenido }}</td>
-      <td>{{ doc.tamanoKB }}</td>
-      <td class="actions-cell">
-        <button (click)="openPreview(doc)" class="preview-button">
-          <i class="pi pi-eye"></i>
-        </button>
-        <button class="action-button" (click)="openEditDialog(doc)">
-          <i class="pi pi-pencil"></i>
-        </button>
-        <button class="action-button" (click)="deleteDocument(doc)">
-          <i class="pi pi-trash"></i>
-        </button>
-        <button class="action-button" (click)="openFileLocation(doc)">
-          <i class="pi pi-folder-open"></i>
-        </button>
-      </td>
-    </tr>
-  </tbody>
-</table>
+<!-- Tabla con diseño de ListUsersComponent -->
+<div class="grid">
+  <div class="col-12 xl:col-12">
+    <div class="card">
+      <ng-template [ngIf]="loading" [ngIfElse]="showTable">
+        <skeleton-table-component [title]="'Listado de Documentos'"></skeleton-table-component>
+      </ng-template>
 
-<ng-template #sinDatos>
-  <p class="no-data">No hay documentos para mostrar.</p>
-</ng-template>
+      <ng-template #showTable>
+        <p-table
+          #dt
+          [value]="filteredDocumentos"
+          [paginator]="true"
+          [rows]="5"
+          responsiveLayout="scroll"
+          styleClass="p-datatable-sm p-datatable-gridlines"
+          [globalFilterFields]="['id', 'nombreOriginal', 'categoria', 'tipoContenido', 'tamanoKB']"
+        >
+          <ng-template pTemplate="caption">
+            <div class="table-header">
+              <h4 class="table-title">Listado de Documentos</h4>
+              <div class="flex">
+                <button pButton class="p-button" (click)="openAddDocumentDialog()" pTooltip="Agregar nuevo documento" tooltipPosition="bottom" label="Agregar Documento"></button>
+                <span class="p-input-icon-left ml-auto">
+                  <i class="pi pi-search"></i>
+                  <input pInputText type="text" (input)="dt.filterGlobal($event.target.value, 'contains')" placeholder="Buscar un documento" />
+                </span>
+              </div>
+            </div>
+          </ng-template>
+          <ng-template pTemplate="header">
+            <tr>
+              <th pSortableColumn="id">ID <p-sortIcon field="id"></p-sortIcon></th>
+              <th pSortableColumn="nombreOriginal">Nombre Original <p-sortIcon field="nombreOriginal"></p-sortIcon></th>
+              <th pSortableColumn="categoria">Categoría <p-sortIcon field="categoria"></p-sortIcon></th>
+              <th pSortableColumn="tipoContenido">Tipo Contenido <p-sortIcon field="tipoContenido"></p-sortIcon></th>
+              <th pSortableColumn="tamanoKB">Tamaño (KB) <p-sortIcon field="tamanoKB"></p-sortIcon></th>
+              <th pSortableColumn="userId">Usuario <p-sortIcon field="userId"></p-sortIcon></th>
+              <th>Acciones</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-doc>
+            <tr>
+              <td style="width: 10%; min-width: 2rem;">{{ doc.id }}</td>
+              <td style="width: 25%; min-width: 7rem;">{{ doc.nombreOriginal }}</td>
+              <td style="width: 20%; min-width: 4rem;">{{ doc.categoria }}</td>
+              <td style="width: 20%; min-width: 4rem;">{{ doc.tipoContenido }}</td>
+              <td style="width: 15%; min-width: 4rem;">{{ doc.tamanoKB }}</td>
+              <td style="width: 20%; min-width: 5rem;">{{ getUserName(doc.userId) }}</td>
+              <td style="width: 20%;">
+                <div class="action-buttons">
+                  <button pButton pRipple type="button" icon="pi pi-eye" class="p-button-text p-button-icon-only" (click)="openPreview(doc)" pTooltip="Vista previa" tooltipPosition="top"></button>
+                  <button pButton pRipple type="button" icon="pi pi-pencil" class="p-button-text p-button-icon-only" (click)="openEditDialog(doc)" pTooltip="Editar" tooltipPosition="top"></button>
+                  <button pButton pRipple type="button" icon="pi pi-trash" class="p-button-text p-button-icon-only" (click)="deleteDocument(doc)" pTooltip="Eliminar" tooltipPosition="top"></button>
+                  <button pButton pRipple type="button" icon="pi pi-folder-open" class="p-button-text p-button-icon-only" (click)="openFileLocation(doc)" pTooltip="Abrir ubicación" tooltipPosition="top"></button>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </ng-template>
+    </div>
+  </div>
+</div>
 
-<!-- Custom Modal -->
+<!-- Custom Modal (sin cambios) -->
 <div class="modal" *ngIf="isModalOpen">
   <div class="modal-content" [ngClass]="{'full-screen': isFullScreen}">
     <div *ngIf="selectedDoc && !isEditMode">

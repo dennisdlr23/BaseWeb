@@ -1,36 +1,78 @@
-/* Estilos existentes (sin cambios) */
+:host ::ng-deep {
+  .p-datatable .p-datatable-thead > tr > th {
+    background-color: #1a73e8; /* Celeste brillante */
+    color: #ffffff;
+    font-weight: 600;
+    padding: 12px;
+  }
+
+  .p-datatable .p-datatable-tbody > tr > td {
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+  }
+
+  .p-datatable .p-datatable-tbody > tr:hover {
+    background-color: #f1f5f9;
+  }
+
+  .p-button-text {
+    margin: 0 4px; /* Espaciado entre botones */
+  }
+
+  .p-input-icon-left {
+    width: 200px;
+  }
+
+  .p-paginator {
+    background-color: #ffffff;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  /* Ajustar estilo del botón Limpiar Filtros */
+  .p-button.p-button-secondary {
+    background-color: #1a73e8; /* Celeste un poco más oscuro que el encabezado */
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    height: 36px; /* Igualar altura con los inputs */
+    line-height: 1; /* Asegurar que el texto esté centrado verticalmente */
+    transition: background-color 0.3s ease;
+    align-self: flex-end; /* Alinear con la base de los inputs */
+  }
+
+  .p-button.p-button-secondary:hover {
+    background-color: #009bb5; /* Tono más oscuro al hacer hover */
+  }
+
+  /* Ajustar el p-calendar para que tenga la misma altura */
+  .p-calendar .p-inputtext {
+    height: 36px;
+    padding: 8px;
+  }
+}
+
 .error-message {
   color: #d32f2f;
   margin-bottom: 10px;
   font-size: 14px;
 }
 
-.actions {
+.document-scope {
   margin-bottom: 20px;
 }
 
-.add-button {
-  background-color: #003087;
-  color: #ffffff;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.3s ease;
+.document-scope h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #1f2937;
 }
 
-.add-button:hover {
-  background-color: #00205b;
-}
-
-/* Estilos para los filtros */
 .filters {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
   margin-bottom: 20px;
-  align-items: center;
+  align-items: flex-end; /* Alinear al final para los inputs */
 }
 
 .filter-field {
@@ -45,114 +87,46 @@
   margin-bottom: 5px;
 }
 
-.filter-field select,
-.filter-field p-calendar {
+.filter-field select {
   padding: 8px;
   border: 1px solid #e5e7eb;
   border-radius: 4px;
   font-size: 14px;
   width: 100%;
+  height: 36px; /* Igualar altura con el botón y p-calendar */
 }
 
-.reset-button {
-  background-color: #6b7280;
-  color: #ffffff;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.3s ease;
-}
-
-.reset-button:hover {
-  background-color: #4b5563;
-}
-
-/* Resto de los estilos existentes (sin cambios) */
-.tabla-documentos {
-  width: 100%;
-  border-collapse: collapse;
+.card {
   background-color: #ffffff;
+  border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 16px;
 }
 
-.tabla-documentos th,
-.tabla-documentos td {
-  border: 1px solid #e5e7eb;
-  padding: 12px;
-  text-align: left;
-  font-size: 14px;
+.table-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.tabla-documentos th {
-  background-color: #003087;
-  color: #ffffff;
-  font-weight: 600;
+.table-title {
+  margin: 0;
 }
 
-.tabla-documentos tbody tr {
-  transition: background-color 0.2s ease;
-}
-
-.tabla-documentos tbody tr:hover {
-  background-color: #f1f5f9;
-}
-
-.tabla-documentos td {
-  background-color: #ffffff;
-  color: #1f2937;
-  vertical-align: middle;
-}
-
-.actions-cell {
-  text-align: right;
-  white-space: nowrap;
-}
-
-.preview-button,
-.action-button {
-  background-color: #6b7280;
-  color: #ffffff;
-  border: none;
-  padding: 8px;
-  width: 36px;
-  height: 36px;
-  border-radius: 4px;
-  cursor: pointer;
-  display: inline-block;
-  margin-left: 8px;
-  transition: background-color 0.3s ease;
+.flex {
+  display: flex;
+  justify-content: space-between; /* Botón a la izquierda, búsqueda a la derecha */
   align-items: center;
-  justify-content: center;
 }
 
-.preview-button {
-  background-color: #003087;
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px; /* Espaciado uniforme entre botones */
 }
 
-.preview-button:hover,
-.action-button:hover {
-  background-color: #4b5563;
-}
-
-.preview-button:hover {
-  background-color: #00205b;
-}
-
-.preview-button i,
-.action-button i {
-  font-size: 18px;
-  line-height: 1;
-}
-
-.no-data {
-  color: #6b7280;
-  font-size: 16px;
-  text-align: center;
-  margin-top: 20px;
-}
-
+/* Estilos del modal */
 .modal {
   position: fixed;
   top: 0;
@@ -213,13 +187,13 @@
   justify-content: center;
 }
 
-.close-button .material-icons {
+.close-button i {
   font-size: 24px;
   color: #6b7280;
   transition: color 0.2s ease;
 }
 
-.close-button:hover .material-icons {
+.close-button:hover i {
   color: #1f2937;
 }
 
@@ -257,11 +231,6 @@
 
 .toggle-fullscreen-button:hover {
   background-color: #4b5563;
-}
-
-.toggle-fullscreen-button .material-icons {
-  vertical-align: middle;
-  font-size: 18px;
 }
 
 .close-modal-button {

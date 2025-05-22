@@ -22,6 +22,11 @@ export class AuthService {
         return this.currentUserSubject.value;
     }
 
+    public getCurrentUserId(): number {
+    const user = this.UserValue;
+    return user ? user.userId : 0; // Retorna userId o 0 si no hay usuario autenticado
+}
+
     public hasPermission(code:string): boolean{
         let hasPermission = this.UserValue.permissions.filter((item)=> item.path == code);
         return hasPermission.length >0;

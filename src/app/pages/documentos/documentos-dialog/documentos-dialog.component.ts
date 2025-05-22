@@ -1,9 +1,13 @@
 import { Component, OnInit, EventEmitter, Output, Input } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { DocumentService } from '../services/documets.service';
+import { CategoriasService } from '../services/categorias.service'; // Importa el servicio
 import { Documento } from '../models/documents';
+import { Categorias } from '../models/categorias'; // Importa el modelo
 import { Messages } from 'src/app/helpers/messages';
-import { environment } from 'src/environments/environment'; // Asegúrate de importar environment
+import { AuthService } from 'src/app/service/users/auth.service';
+import { environment } from 'src/environments/environment';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-documentos-dialog',
@@ -18,29 +22,60 @@ export class DocumentosDialogComponent implements OnInit {
   @Input() isEditMode: boolean = false;
   loading: boolean = false;
   previewUrl: string | ArrayBuffer | null = null;
-  readonly basePath: string = 'C:\\SAANAA\\'; // Ruta base deseada
+  readonly basePath: string = 'C:\\SAANAA\\';
+  userId: number;
+  categorias: Categorias[] = []; // Lista de categorías
+  filteredCategorias: Categorias[] = []; // Lista filtrada para el dropdown
+  categoriaFilter: string = ''; // Valor del filtro de búsqueda
 
   constructor(
     private fb: FormBuilder,
-    private documentService: DocumentService
+    private documentService: DocumentService,
+    private categoriasService: CategoriasService, // Inyecta el servicio
+    private authService: AuthService,
+    private router: Router
   ) {
+    this.userId = this.authService.getCurrentUserId();
+    if (!this.userId) {
+      Messages.warning("Advertencia", "No se detectó un usuario autenticado. Por favor, inicia sesión.");
+      this.router.navigate(['/login']);
+    }
     this.documentForm = this.fb.group({
       id: [0],
       nombreOriginal: [{ value: '', disabled: true }],
       nombreAlmacenado: ['', Validators.required],
       rutaArchivo: [{ value: '', disabled: true }],
       fechaSubida: [{ value: '', disabled: true }],
-      categoria: ['', Validators.required],
+      categoria: ['', Validators.required], // Campo para la categoría seleccionada
       etiquetas: [''],
       tipoContenido: [{ value: '', disabled: true }],
-      tamanoKB: [{ value: '', disabled: true }]
+      tamanoKB: [{ value: '', disabled: true }],
+      userId: [this.userId, Validators.required]
     });
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    await this.loadCategorias(); // Carga las categorías al iniciar
     if (this.isEditMode && this.documentToEdit) {
       this.loadDocumentForEdit();
     }
+  }
+
+  async loadCategorias(): Promise<void> {
+    try {
+      this.categorias = await this.categoriasService.get();
+      this.filteredCategorias = [...this.categorias]; // Inicializa la lista filtrada
+    } catch (error) {
+      console.error('Error al cargar categorías:', error);
+      Messages.warning("Error", "No se pudieron cargar las categorías");
+    }
+  }
+
+  filterCategorias(): void {
+    const filterValue = this.categoriaFilter.toLowerCase();
+    this.filteredCategorias = this.categorias.filter(categoria =>
+      categoria.nombre.toLowerCase().includes(filterValue) && categoria.activa
+    );
   }
 
   loadDocumentForEdit(): void {
@@ -54,7 +89,8 @@ export class DocumentosDialogComponent implements OnInit {
         categoria: this.documentToEdit.categoria,
         etiquetas: this.documentToEdit.etiquetas,
         tipoContenido: this.documentToEdit.tipoContenido,
-        tamanoKB: this.documentToEdit.tamanoKB
+        tamanoKB: this.documentToEdit.tamanoKB,
+        userId: this.documentToEdit.userId
       });
       this.loadPreview();
     }
@@ -81,7 +117,8 @@ export class DocumentosDialogComponent implements OnInit {
         tipoContenido: fileType,
         tamanoKB: fileSizeKB,
         fechaSubida: fechaSubida,
-        rutaArchivo: `${this.basePath}${fileName}` // Usar la ruta base deseada
+        rutaArchivo: `${this.basePath}${fileName}`,
+        userId: this.userId
       });
 
       const reader = new FileReader();
@@ -100,7 +137,8 @@ export class DocumentosDialogComponent implements OnInit {
         if (this.isEditMode && this.documentToEdit) {
           const updatedDocument: Documento = {
             ...this.documentToEdit,
-            ...this.documentForm.getRawValue()
+            ...this.documentForm.getRawValue(),
+            userId: this.userId
           };
           response = await this.documentService.update(updatedDocument.id, updatedDocument);
         } else {
@@ -110,7 +148,8 @@ export class DocumentosDialogComponent implements OnInit {
           const document: Documento = {
             id: 0,
             ...this.documentForm.getRawValue(),
-            rutaArchivo: `${this.basePath}${fileName}` // Usar la ruta base deseada
+            rutaArchivo: `${this.basePath}${fileName}`,
+            userId: this.userId
           };
           response = await this.documentService.add(document);
         }

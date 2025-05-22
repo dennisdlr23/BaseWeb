@@ -1,0 +1,52 @@
+<div class="grid">
+  <div class="col-12 xl:col-12">
+    <div class="card">
+      <ng-template [ngIf]="loading" [ngIfElse]="showTable">
+        <p>Loading categorías...</p> <!-- Puedes poner un skeleton si tienes uno -->
+      </ng-template>
+
+      <ng-template #showTable>
+        <p-table #dt [value]="categorias" [paginator]="true" [rows]="5"
+          responsiveLayout="scroll" styleClass="p-datatable-sm p-datatable-gridlines"
+          [globalFilterFields]="['id', 'nombre', 'activa']">
+
+          <ng-template pTemplate="header">
+            <tr>
+              <th pSortableColumn="id">ID <p-sortIcon field="id"></p-sortIcon> <p-columnFilter type="text" field="id" display="menu" class="ml-auto"></p-columnFilter></th>
+              <th pSortableColumn="nombre">Nombre <p-sortIcon field="nombre"></p-sortIcon> <p-columnFilter type="text" field="nombre" display="menu" class="ml-auto"></p-columnFilter></th>
+              <th pSortableColumn="activa">Estado <p-sortIcon field="activa"></p-sortIcon> <p-columnFilter type="boolean" field="activa" display="menu" class="ml-auto"></p-columnFilter></th>
+              <th>Acciones</th>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="caption">
+            <h4 class="mt-2">{{title}}</h4>
+            <div class="flex">
+              <button pButton class="ml-2" pRipple type="button" (click)="addCategoria()" pTooltip="Agregar nueva categoría" tooltipPosition="bottom" label="Agregar"></button>
+              <span class="p-input-icon-left ml-auto">
+                <i class="pi pi-search"></i>
+                <input pInputText type="text" (input)="dt.filterGlobal($event.target.value, 'contains')" placeholder="Buscar" />
+              </span>
+            </div>
+          </ng-template>
+
+          <ng-template pTemplate="body" let-categoria>
+            <tr>
+              <td>{{categoria.id}}</td>
+              <td>{{categoria.nombre}}</td>
+              <td>
+                <p-chip [label]="categoria.activa ? 'Activa' : 'Inactiva'" [styleClass]="categoria.activa ? 'custom-chip' : ''" [icon]="categoria.activa ? 'pi pi-check' : 'pi pi-times'"></p-chip>
+              </td>
+              <td>
+                <button (click)="editCategoria(categoria)" pButton pRipple type="button" icon="pi pi-pencil" class="p-button-text p-button-icon-only"></button>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </ng-template>
+    </div>
+  </div>
+
+  <!-- Aquí podrías incluir un componente dialog similar al UserDialog para crear/editar -->
+  <app-categorias-dialog (categoriaModify)="categoriaModify($event)"></app-categorias-dialog>
+</div>

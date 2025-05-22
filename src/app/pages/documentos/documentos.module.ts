@@ -7,12 +7,16 @@ import { DocumentosDialogComponent } from './documentos-dialog/documentos-dialog
 import { DocumentService } from './services/documets.service';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ComponentPrimeNg } from 'src/app/components.primeng';
+import { CategoriasListaComponent } from './categorias-lista/categorias-lista.component';
+import { CategoriasDialogComponent } from './categorias-dialog/categorias-dialog.component';
 
 
 @NgModule({
   declarations: [
     DocumentosListaComponent,
-    DocumentosDialogComponent
+    DocumentosDialogComponent,
+    CategoriasListaComponent,
+    CategoriasDialogComponent
   ],
   imports: [
     CommonModule,
